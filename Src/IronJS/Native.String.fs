@@ -9,7 +9,7 @@ open IronJS.Support.Aliases
 open IronJS.Support.CustomOperators
 
 ///
-module internal String =
+module String =
 
   ///
   let private constructor' (ctor:FO) (this:CO) (args:Args) =

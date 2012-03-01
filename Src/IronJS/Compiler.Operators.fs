@@ -7,7 +7,7 @@ open IronJS.Runtime
 open IronJS.Support.CustomOperators
 open IronJS.Support.Aliases
 
-module internal Unary =
+module Unary =
 
   //----------------------------------------------------------------------------
   // 11.3
@@ -170,7 +170,7 @@ module internal Unary =
     | _ -> failwithf "Invalid unary op %A" op
 
 ///
-module internal Binary =
+module Binary =
 
   ///
   let private toNumber (expr:Dlr.Expr) =

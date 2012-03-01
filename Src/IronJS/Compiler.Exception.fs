@@ -9,12 +9,12 @@ open IronJS.Dlr.Operators
 open IronJS.Runtime
 open IronJS.Support.CustomOperators
 
-module internal Exception =
+module Exception =
 
   ///
   let throw (ctx:Ctx) expr =
     Dlr.throwT<UserError> [ctx.Compile expr $ Utils.box; !!!(-1); !!!(-1)]
-      
+
   ///
   let private compileCatch (ctx:Ctx) catch =
     match catch with
@@ -42,8 +42,8 @@ module internal Exception =
           Ast.Shared(1, catch.GlobalLevel, catch.ClosureLevel)
 
         // The new context for the body of the catch block
-        let ctx = 
-          {ctx with 
+        let ctx =
+          {ctx with
             ClosureLevel = catch.ClosureLevel
             CatchScopes = ref catch.CatchScopes
             Variables = ctx.Variables $ Map.add catch.Name sharedVariable
@@ -80,7 +80,7 @@ module internal Exception =
             let restoreSharedScope =
               Dlr.block [] [
                 // Restore the shared scope to the previous one
-                ctx.Parameters.SharedScope .= 
+                ctx.Parameters.SharedScope .=
                   Dlr.index0 ctx.Parameters.SharedScope .-> "Scope"
               ]
 
@@ -97,20 +97,20 @@ module internal Exception =
 
   ///
   let private buildCatchJumpBlock type' usedLabels =
-    let jumpExn = Dlr.param "~jumpExn" type' 
+    let jumpExn = Dlr.param "~jumpExn" type'
     let jumpLabelId = jumpExn .-> "LabelId"
-    let jumpList = 
+    let jumpList =
       [
         for (id:int), label in !usedLabels $ Map.toList ->
           Dlr.if' (jumpLabelId .== !!!id) (Dlr.jump label)
-      ] @ [Dlr.throwValue jumpExn] 
+      ] @ [Dlr.throwValue jumpExn]
 
     jumpList $ Dlr.block [] $ Dlr.catchVar jumpExn
 
   ///
   let private finally' tryBlock catchBlock finallyAst (ctx:Ctx) =
     let getActiveLabels labels default' =
-      let labels = 
+      let labels =
         match default' with
         | None -> labels
         | Some label -> labels |> Map.add "~default" label
@@ -140,8 +140,8 @@ module internal Exception =
       compiler :: ctx.Labels.ContinueCompilers
 
     let finallyCtx =
-      let labels = 
-        {ctx.Labels with 
+      let labels =
+        {ctx.Labels with
           ReturnCompiler = returnCompiler
           BreakCompilers = breakCompilers
           ContinueCompilers = continueCompilers
@@ -169,10 +169,10 @@ module internal Exception =
 
   ///
   let try' (ctx:Ctx) body catch final =
-    let tryBlock = 
+    let tryBlock =
       ctx.Compile body $ Dlr.castVoid
 
-    let catchBlock = 
+    let catchBlock =
       match catch with
       | None -> []
       | Some(tree) -> [compileCatch ctx tree]

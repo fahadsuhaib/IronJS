@@ -9,7 +9,7 @@ open IronJS.Runtime
 open IronJS.Support.Aliases
 open IronJS.Support.CustomOperators
 
-module internal ControlFlow =
+module ControlFlow =
 
   //----------------------------------------------------------------------------
   // 11.12 conditional

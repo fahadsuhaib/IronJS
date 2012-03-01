@@ -6,7 +6,7 @@ open IronJS.Runtime
 open IronJS.Support.Aliases
 open IronJS.Support.CustomOperators
 
-module internal Math =
+module Math =
 
   let private random (func:FO) (_:CO) =
     func.Env.Random.NextDouble()

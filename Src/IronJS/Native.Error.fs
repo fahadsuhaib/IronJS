@@ -6,7 +6,7 @@ open IronJS.Runtime
 
 module Error =
 
-  module internal Utils = 
+  module Utils = 
 
     let private constructor' proto (f:FO) (_:CO) (message:BV) =
       let error = f.Env.NewError()

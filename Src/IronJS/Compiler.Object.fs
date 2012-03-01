@@ -12,14 +12,14 @@ open IronJS.Compiler.Utils
 open IronJS.Compiler.Context
 
 ///
-module internal Object =
+module Object =
 
   ///
-  module Property = 
-    
+  module Property =
+
     //
     let putBox expr name value =
-      tempBlockT<CO> expr (fun tmp -> 
+      tempBlockT<CO> expr (fun tmp ->
         [tempBlock value (fun valueTmp ->
           let args = [name; valueTmp]
           [call tmp "Put" args; valueTmp]
@@ -28,7 +28,7 @@ module internal Object =
 
     //
     let putRef expr name (value:Dlr.Expr) =
-      tempBlockT<CO> expr (fun tmp -> 
+      tempBlockT<CO> expr (fun tmp ->
         [tempBlock value (fun valueTmp ->
           let tag = valueTmp.Type |> TypeTag.OfType |> Dlr.const'
           let args = [name; valueTmp; tag]
@@ -38,7 +38,7 @@ module internal Object =
 
     //
     let putVal expr name (value:Dlr.Expr) =
-      tempBlockT<CO> expr (fun tmp -> 
+      tempBlockT<CO> expr (fun tmp ->
         [tempBlock value (fun valueTmp ->
           let args = [name; Utils.normalizeVal valueTmp]
           [call tmp "Put" args; valueTmp]
@@ -46,49 +46,49 @@ module internal Object =
       )
 
     ///
-    let put name (value:Dlr.Expr) expr = 
+    let put name (value:Dlr.Expr) expr =
       match value with
       | IsBox -> putBox expr name value
       | IsRef -> putRef expr name value
       | IsVal -> putVal expr name value
 
     ///
-    let get name expr = 
-      tempBlockT<CO> expr (fun tmp -> 
+    let get name expr =
+      tempBlockT<CO> expr (fun tmp ->
         [call tmp "Get" [name]]
       )
 
     ///
-    let delete expr name = 
-      tempBlockT<CO> expr (fun tmp -> 
+    let delete expr name =
+      tempBlockT<CO> expr (fun tmp ->
         [call tmp "Delete" [name]]
       )
 
     ///
     let attr name (attr:uint16) cobj =
-      tempBlockT<CO> cobj (fun tmp -> 
+      tempBlockT<CO> cobj (fun tmp ->
         [call tmp "SetAttrs" [name; !!!attr]]
       )
-   
+
   ///
   module Index =
-  
+
     ///
     let private putConvert expr index value tag =
-      Utils.tempBlockT<CommonObject> expr (fun tmp -> 
+      Utils.tempBlockT<CommonObject> expr (fun tmp ->
         let normalizedValue = normalizeVal value
         let args =
           match tag with
-          | None -> [index; normalizedValue] 
-          | Some tag -> [index; normalizedValue; tag] 
+          | None -> [index; normalizedValue]
+          | Some tag -> [index; normalizedValue; tag]
 
         [call tmp "Put" args; value]
       )
-    
+
     //
     let putBox expr index value =
       if Dlr.Utils.isT<uint32> index then
-        Utils.tempBlockT<CO> expr (fun tmp -> 
+        Utils.tempBlockT<CO> expr (fun tmp ->
           let args = [index; value]
           [Dlr.call tmp "Put" args; value]
         )
@@ -99,27 +99,27 @@ module internal Object =
     //
     let putVal expr index value =
       if Dlr.Utils.isT<uint32> index then
-        Utils.tempBlockT<CO> expr (fun tmp -> 
+        Utils.tempBlockT<CO> expr (fun tmp ->
           let args = [index; Utils.normalizeVal value]
           [Dlr.call tmp "Put" args; value]
         )
-        
+
       else
         putConvert expr index value None
 
     //
     let putRef expr index (value:Dlr.Expr) =
       let tag = value.Type |> TypeTag.OfType |> Dlr.const'
-      
+
       if Dlr.Utils.isT<uint32> index then
-        Utils.tempBlockT<CO> expr (fun tmp -> 
+        Utils.tempBlockT<CO> expr (fun tmp ->
           let args =  [index; value; tag]
           [Dlr.call tmp "Put" args; value]
         )
-            
+
       else
         putConvert expr index value (Some tag)
-      
+
     //
     let put index value expr =
       match value with
@@ -128,27 +128,27 @@ module internal Object =
       | IsRef -> putRef expr index value
 
     //
-    let get expr index = 
-      tempBlockT<CO> expr (fun tmp -> 
+    let get expr index =
+      tempBlockT<CO> expr (fun tmp ->
         [tmp.CallMember("Get", [index])]
       )
 
     //
-    let delete expr index = 
-      tempBlockT<CO> expr (fun tmp -> 
+    let delete expr index =
+      tempBlockT<CO> expr (fun tmp ->
         [tmp.CallMember("Delete", [index])]
       )
 
   // 11.1.4 array initialiser
-  let literalArray (ctx:Ctx) (indexes:Ast.Tree list) = 
+  let literalArray (ctx:Ctx) (indexes:Ast.Tree list) =
     let length = indexes.Length |> uint32
 
     blockTmpT<CO> (fun tmp ->
-      [ 
+      [
         tmp .= ctx.Env.CallMember("NewArray", [!!!length])
 
         (List.mapi (fun i value ->
-          let value = 
+          let value =
             match value with
             | Ast.Pass -> Ast.Undefined
             | value -> value
@@ -161,7 +161,7 @@ module internal Object =
 
         tmp :> Dlr.Expr
       ] |> Seq.ofList)
-      
+
   // 11.1.5 object initialiser
   let literalObject (ctx:Ctx) properties =
     let newExpr = ctx.Env.CallMember("NewObject")
@@ -170,7 +170,7 @@ module internal Object =
       let value = ctx $ compile value
       tmp |> Property.put !!!name value
 
-    Dlr.blockTmpT<CO> (fun tmp -> 
+    Dlr.blockTmpT<CO> (fun tmp ->
       let initExprs = properties |> List.map (setProperty tmp)
       (Dlr.assign tmp newExpr :: initExprs) @ [tmp] |> Seq.ofList
     )
@@ -179,8 +179,8 @@ module internal Object =
   let getIndex (ctx:Ctx) object' index =
     ensureObject ctx object'
       (fun x -> Index.get x index)
-      (fun x -> 
-        (Dlr.ternary 
+      (fun x ->
+        (Dlr.ternary
           (Dlr.callStaticT<Object> "ReferenceEquals" [Dlr.castT<obj> x; Dlr.null'])
           (Dlr.callGeneric ctx.Env "RaiseTypeError" [typeof<BV>] [!!!ErrorUtils.nextErrorId()])
           (Utils.Constants.Boxed.undefined)
@@ -193,7 +193,7 @@ module internal Object =
 
   /// MemberExpression . String = Expression
   let putMember (ctx:Ctx) (expr:Dlr.Expr) (name:string) (value:Dlr.Expr) =
-    
+
     //
     let makePropertyPutCache (env:Env) =
       let cache = !!!(new Runtime.Optimizations.InlinePropertyPutCache())
@@ -215,10 +215,10 @@ module internal Object =
           match value with
           | IsBox -> [|jsobj; !!!name; value|]
           | IsVal -> [|jsobj; !!!name; value |> Utils.normalizeVal|]
-          | IsRef -> [|jsobj; !!!name; value; !!!TypeTag.OfType(value.Type)|] 
+          | IsRef -> [|jsobj; !!!name; value; !!!TypeTag.OfType(value.Type)|]
 
         Dlr.Fast.block [||] [|
-          Dlr.ifElse 
+          Dlr.ifElse
             (cacheId .== jsobj .-> "PropertySchema" .-> "Id")
             (Dlr.Fast.block [|index; properties|] [|
               properties .= jsobj .-> "Properties"
@@ -230,10 +230,10 @@ module internal Object =
         |]
 
     //
-    let fromClrObject (clrobj:Dlr.Expr) (name:string)  (value:Dlr.Expr) (ctx:Ctx) = 
+    let fromClrObject (clrobj:Dlr.Expr) (name:string)  (value:Dlr.Expr) (ctx:Ctx) =
       let env = ctx.Target.Environment
       value
-      
+
     //
     let fromJsValue (jsval:Dlr.Expr) (name:string)  (value:Dlr.Expr) (ctx:Ctx) =
       Dlr.Fast.block [||] [|value|]
@@ -255,7 +255,7 @@ module internal Object =
     let value = value |> Utils.toStatic vars body
 
     match TypeTag.OfType(expr.Type) with
-    | TypeTags.Box -> 
+    | TypeTags.Box ->
       body.Add(fromBox expr name value ctx)
 
     | TypeTags.Object
@@ -273,14 +273,14 @@ module internal Object =
       body.Add(fromClrObject expr name value ctx)
 
     Dlr.block vars body
-    
+
   /// MemberExpression . String = Expression
   let putMember_Ast (ctx:Ctx) (ast:Ast.Tree) (name:string) (value:Ast.Tree) =
     putMember ctx (ctx |> compile ast) name (ctx |> compile value)
 
   /// MemberExpression . String
   let getMember (ctx:Ctx) (expr:Dlr.Expr) (name:string) (throwOnMissing:bool) =
-    
+
     //
     let makePropertyGetCache (throwOnMissing:bool) (env:Env) =
       let cache = !!!(new Runtime.Optimizations.InlinePropertyGetCache(env, throwOnMissing))
@@ -293,18 +293,18 @@ module internal Object =
       let env = ctx.Target.Environment
       let cache, cacheId, cacheIndex = env |> makePropertyGetCache throw
 
-      Dlr.ternary 
+      Dlr.ternary
         (cacheId .== jsobj .-> "PropertySchema" .-> "Id")
         (Dlr.index (jsobj .-> "Properties") [cacheIndex] .-> "Value")
         (Dlr.call cache "Get" [|jsobj; !!!name|])
 
     //
-    let fromClrObject (clrobj:Dlr.Expr) (name:string) (ctx:Ctx) = 
+    let fromClrObject (clrobj:Dlr.Expr) (name:string) (ctx:Ctx) =
       let env = ctx.Target.Environment
       Dlr.callStaticT<BoxingUtils> "JsBox" [
         Dlr.dynamic typeof<obj> (new Runtime.Binders.GetMemberBinder(name,env)) [clrobj]
       ]
-      
+
     //
     let fromJsValue (jsval:Dlr.Expr) (name:string) (ctx:Ctx) =
       Dlr.call (Utils.Convert.toObject ctx jsval) "Get" [!!!name]
@@ -325,7 +325,7 @@ module internal Object =
     let expr = expr |> Utils.toStatic vars body
 
     match TypeTag.OfType(expr.Type) with
-    | TypeTags.Box -> 
+    | TypeTags.Box ->
       body.Add(fromBox expr name throwOnMissing ctx)
 
     | TypeTags.Object

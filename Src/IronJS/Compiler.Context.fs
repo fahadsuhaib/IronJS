@@ -7,8 +7,8 @@ open IronJS.Support.Aliases
 open IronJS.Support.CustomOperators
 
 ///
-module Target = 
-    
+module Target =
+
   /// There are three types of compilation
   /// targets. Eval for code compiled through
   /// the eval function, Global for code
@@ -21,7 +21,7 @@ module Target =
 
   /// Record that represents a compilation target
   /// which is a grouping of the following properties:
-  /// 
+  ///
   /// * Ast - The syntax tree to compile
   /// * Mode - The target mode (eval, global or function)
   /// * DelegateType - The target delegate signature we're targeting
@@ -42,9 +42,9 @@ module Target =
   /// Extracts the parameter types from a delegate
   let getParameterTypes = function
     | None -> [||]
-    | Some(delegateType:Type) -> 
-      delegateType 
-      $ FSharp.Reflection.getDelegateParameterTypes 
+    | Some(delegateType:Type) ->
+      delegateType
+      $ FSharp.Reflection.getDelegateParameterTypes
       $ FSharp.Array.skip 2
 
   /// Creates a new T record
@@ -56,7 +56,7 @@ module Target =
       DelegateType = delegateType
       ParameterTypes = delegateType |> getParameterTypes
     }
-    
+
   /// Creates a new T record with Eval mode
   let createEval ast env =
     env |> create ast Mode.Eval None
@@ -66,11 +66,11 @@ module Target =
     env |> create ast Mode.Global None
 
 ///
-module internal Labels = 
+module Labels =
 
   type LabelGroup =
     Map<string, int * Dlr.Label> * Map<int, Dlr.Label> ref
-  
+
   ///
   type T = {
     Return: Dlr.Label
@@ -95,26 +95,26 @@ module internal Labels =
 
   ///
   let addLoopLabels name breakLabel continueLabel (t:T) =
-    let t = 
-      {t with 
+    let t =
+      {t with
         Break = Some breakLabel
         Continue = Some continueLabel
       }
 
     match name with
     | None -> t
-    | Some name -> 
+    | Some name ->
       {t with
-        BreakLabels = 
+        BreakLabels =
           t.BreakLabels |> Map.add name breakLabel
 
-        ContinueLabels = 
+        ContinueLabels =
           t.ContinueLabels |> Map.add name continueLabel
       }
 
 ///
-module internal Parameters =
-    
+module Parameters =
+
   ///
   type T = {
     This: Dlr.Parameter
@@ -127,11 +127,11 @@ module internal Parameters =
   }
 
   ///
-  let thisAsExpr (t:T) = 
+  let thisAsExpr (t:T) =
     t.This :> Dlr.Expr
 
   ///
-  let functionAsExpr (t:T) = 
+  let functionAsExpr (t:T) =
     t.Function :> Dlr.Expr
 
   ///
@@ -147,8 +147,8 @@ module internal Parameters =
     (t |> environment) .-> "Return"
 
 ///
-module internal Context = 
-  
+module Context =
+
   type T = {
     CompileFunction : Target.T -> Delegate
     Compiler : T -> Ast.Tree -> Dlr.Expr
@@ -159,7 +159,7 @@ module internal Context =
 
     Variables: Map<string, Ast.Variable>
     CatchScopes: Ast.CatchScope ref list ref
-  
+
     Target: Target.T
     Labels: Labels.T
     Parameters: Parameters.T
@@ -192,8 +192,8 @@ module internal Context =
 type Ctx = Context.T
 
 ///
-[<AllowNullLiteral>] 
-type EvalTarget() = 
+[<AllowNullLiteral>]
+type EvalTarget() =
   [<DefaultValue>] val mutable Target : BV
   [<DefaultValue>] val mutable GlobalLevel : int
   [<DefaultValue>] val mutable ClosureLevel : int

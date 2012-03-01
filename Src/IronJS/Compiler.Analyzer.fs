@@ -4,8 +4,8 @@ open IronJS
 open IronJS.Compiler
 open IronJS.Compiler.Parser
 
-module internal Analyzer =
-  
+module Analyzer =
+
   /// Tries to find a variable in a ScopeData chain
   let rec findVariable name (d:ScopeData option) =
     match d with
@@ -19,12 +19,12 @@ module internal Analyzer =
         // index catch variables always have) and
         // the global level of the catch scope
 
-        if (!s).Name = name 
+        if (!s).Name = name
           then (1, (!s).GlobalLevel) |> Some
           else d.Parent |> findVariable name
 
       | Ast.ScopeOption.Function s ->
-        // Try to locate the variable in 
+        // Try to locate the variable in
         // the current function scope
         match (!s).Variables |> Map.tryFind name with
         | Some var ->
@@ -48,7 +48,7 @@ module internal Analyzer =
     // First create variables in function scopes
     match d.Scope with
     | Ast.ScopeOption.Catch _ -> () // Don't need to do anything for catch scopes
-    | Ast.ScopeOption.Function s ->   
+    | Ast.ScopeOption.Function s ->
       match (!s).ScopeType with
       | Ast.ScopeType.GlobalScope ->
         // Global scopes are easy, just copy
@@ -64,7 +64,7 @@ module internal Analyzer =
         for name in !d.Variables do
           s |> Ast.Utils.createPrivateVariable name
 
-        // Then step through all missing 
+        // Then step through all missing
         // variables for this scope
         for name in !d.Missing do
           match d.Parent |> findVariable name with
@@ -80,8 +80,8 @@ module internal Analyzer =
       child |> buildVariables
 
   let rec calculateScopeProperties (levels:Map<int, int>) closureLevel (d:ScopeData) =
-    let globalLevel, closureLevel = 
-      
+    let globalLevel, closureLevel =
+
       match d.Scope with
       | Ast.ScopeOption.Catch s ->
         // Catch scope is simple, always increase closure level
@@ -89,20 +89,20 @@ module internal Analyzer =
         (!s).GlobalLevel, (!s).ClosureLevel
 
       | Ast.ScopeOption.Function s ->
-        
-        let globalLevel = 
+
+        let globalLevel =
           s |> Ast.Utils.globalLevel
 
         // Calculate the new closure level
         // which is either the same as previous
         // if this scope has no shared variables
         // or previous+1 if it does.
-        let closureLevel = 
-          if (!s).SharedCount > 0 
+        let closureLevel =
+          if (!s).SharedCount > 0
             then closureLevel + 1
             else closureLevel
-        
-        // This functions updates all 
+
+        // This functions updates all
         // closure levels of all
         // shared variables in the current scope
         let updateClosureLevels _ var =
@@ -127,7 +127,7 @@ module internal Analyzer =
     // Add the closure level to the map so
     // that child scopes can find the correct
     // closure level for their own closures
-    let levels = 
+    let levels =
       levels |> Map.add globalLevel closureLevel
 
     for child in !d.Children do

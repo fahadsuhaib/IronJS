@@ -3,16 +3,16 @@
 open IronJS
 open IronJS.Compiler
 open IronJS.Dlr.Operators
-  
-///
-module internal Identifier =
 
-  /// 
+///
+module Identifier =
+
+  ///
   let getVariableStorage (name:string) (ctx:Ctx)  =
-    
-    let rec walkSharedChain n expr = 
+
+    let rec walkSharedChain n expr =
       if n = 0 then expr
-      else 
+      else
         let expr = Dlr.index0 expr .-> "Scope"
         expr |> walkSharedChain (n-1)
 
@@ -20,10 +20,10 @@ module internal Identifier =
     | Some variable ->
       match variable with
       | Ast.Shared(storageIndex, globalLevel, closureLevel) ->
-        let closureDifference = ctx.ClosureLevel - closureLevel 
+        let closureDifference = ctx.ClosureLevel - closureLevel
 
-        let expr = 
-          ctx.Parameters.SharedScope 
+        let expr =
+          ctx.Parameters.SharedScope
           |> walkSharedChain closureDifference
 
         Some(expr, storageIndex, globalLevel)
@@ -34,14 +34,14 @@ module internal Identifier =
 
     | None ->
       None
-          
+
   ///
   let getDynamicArgs (ctx:Ctx) name =
     match ctx |> getVariableStorage name with
     | None -> [Dlr.int_1; ctx.Globals; Dlr.defaultT<Scope>; Dlr.int_1]
-    | Some(expr, index, level) -> 
+    | Some(expr, index, level) ->
       [Dlr.const' level; ctx.Globals; expr; Dlr.const' index]
-          
+
   ///
   let private getValueDynamic (ctx:Ctx) name =
     let defaultArgs = [Dlr.const' name; ctx.Parameters.DynamicScope :> Dlr.Expr]
@@ -60,24 +60,24 @@ module internal Identifier =
   let isGlobal (ctx:Ctx) name =
     ctx.Variables |> Map.containsKey name |> not
 
-  /// 
+  ///
   let getValue (ctx:Ctx) name =
     match ctx.DynamicLookup with
     | true -> getValueDynamic ctx name
-    | _ -> 
+    | _ ->
       match ctx |> getVariableStorage name with
       | Some(expr, i, _) -> Dlr.indexInt expr i
       | _ -> Object.getMember ctx ctx.Globals name true
-        
+
   ///
   let setValue (ctx:Ctx) name value =
     match ctx.DynamicLookup with
     | true -> setValueDynamic ctx name value
     | _ ->
       match ctx |> getVariableStorage name with
-      | None -> 
+      | None ->
         Object.putMember ctx ctx.Globals name value
 
-      | Some(expr, i, _) -> 
+      | Some(expr, i, _) ->
         let varExpr = (Dlr.indexInt expr i)
         Utils.assign varExpr value

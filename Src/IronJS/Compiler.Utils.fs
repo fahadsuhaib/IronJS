@@ -12,8 +12,8 @@ open IronJS.Runtime
 open IronJS.Dlr.Operators
 
 ///
-module internal Utils =
-  
+module Utils =
+
   ///
   let (|IsBox|IsRef|IsVal|) (expr:Dlr.Expr) =
     if expr.Type = typeof<BV>
@@ -21,25 +21,25 @@ module internal Utils =
       elif Dlr.Utils.isT<double> expr || Dlr.Utils.isT<bool> expr
         then IsVal
         else IsRef
-    
+
   ///
   module Constants =
-  
+
     let zero = Dlr.dbl0
     let one = Dlr.dbl1
     let two = Dlr.dbl2
     let undefined = Dlr.propertyStaticT<Undefined> "Instance"
 
     ///
-    module Boxed = 
-      
+    module Boxed =
+
       let null' = Dlr.propertyStaticT<Environment> "BoxedNull"
       let zero = Dlr.propertyStaticT<Environment> "BoxedZero"
       let undefined = Dlr.propertyStaticT<Undefined> "Boxed"
-      
+
   ///
   module Box =
-    
+
     let isBool box      = box .-> "Tag"    .==  !!!TypeTags.Bool
     let isNumber box    = box .-> "Marker" .<   !!!Markers.Tagged
     let isClr box       = box .-> "Tag"    .==  !!!TypeTags.Clr
@@ -61,23 +61,23 @@ module internal Utils =
       | TypeTags.Number -> Dlr.void'
       | _ -> (expr .-> "Tag") .= !!!t
 
-    let setTagOf expr (of':Dlr.Expr) = 
+    let setTagOf expr (of':Dlr.Expr) =
       setTag expr (of'.Type |> TypeTag.OfType)
 
-    let setValue (expr:Dlr.Expr) (value:Dlr.Expr)= 
+    let setValue (expr:Dlr.Expr) (value:Dlr.Expr)=
       let field = value.Type |> TypeTag.OfType |> BV.FieldOfTag
       expr.->field .= value
-      
+
   ///
-  let isBoxed (expr:Dlr.Expr) = 
+  let isBoxed (expr:Dlr.Expr) =
     Dlr.Utils.isT<BV> expr
-  
-  ///  
+
+  ///
   let voidAsUndefined (expr:Dlr.Expr) =
     if Dlr.Utils.isVoid expr
       then Dlr.blockSimple [expr; Constants.Boxed.undefined]
       else expr
-  
+
   ///
   let normalizeVal (expr:Dlr.Expr) =
     if Dlr.Utils.isT<bool> expr
@@ -87,7 +87,7 @@ module internal Utils =
       else expr
 
   ///
-  let box value = 
+  let box value =
     if isBoxed value then value
     else
       Dlr.blockTmpT<BV> (fun tmp ->
@@ -100,14 +100,14 @@ module internal Utils =
 
   ///
   let unbox type' (expr:Dlr.Expr) =
-    if isBoxed expr then 
+    if isBoxed expr then
       let bf = type' |> TypeTag.OfType |> BV.FieldOfTag
       Dlr.field expr bf
 
-    elif expr.Type |> FSharp.Utils.isType type' then 
+    elif expr.Type |> FSharp.Utils.isType type' then
       expr
 
-    else 
+    else
       failwithf "Can't unbox expression of type %A to %A" expr.Type type'
 
   ///
@@ -115,7 +115,7 @@ module internal Utils =
     if expr.Type = typeof<BV> then
       expr .-> "ClrBoxed"
 
-    elif expr.Type = typeof<System.Void> then 
+    elif expr.Type = typeof<System.Void> then
       Dlr.Fast.block [||] [|expr; Dlr.null'|]
 
     else
@@ -146,13 +146,13 @@ module internal Utils =
       tempBlock value2 body
 
   ///
-  let assign (lexpr:Dlr.Expr) rexpr = 
+  let assign (lexpr:Dlr.Expr) rexpr =
 
-    let setBoxClrNull expr = 
+    let setBoxClrNull expr =
       Dlr.assign (Dlr.field expr BoxFields.Clr) Dlr.null'
 
     let assignBox (lexpr:Dlr.Expr) (rexpr:Dlr.Expr) =
-      if isBoxed rexpr then 
+      if isBoxed rexpr then
         Dlr.assign lexpr rexpr
 
       else
@@ -164,11 +164,11 @@ module internal Utils =
             [setBoxClrNull box; Box.setTagOf box val'; Box.setValue box val']
 
         else
-          Dlr.blockSimple 
+          Dlr.blockSimple
             [Box.setTagOf box val'; Box.setValue box val']
 
-    if isBoxed lexpr 
-      then assignBox lexpr rexpr 
+    if isBoxed lexpr
+      then assignBox lexpr rexpr
       else Dlr.assign lexpr rexpr
 
   ///
@@ -179,7 +179,7 @@ module internal Utils =
     | Ast.String s when TC.TryToIndex(s, &index) -> !!!index
     | _ -> ctx.Compile indexAst
 
-  /// 
+  ///
   let toStatic (vars:Dlr.ParameterList) (body:Dlr.ExprList) (expr:Dlr.Expr) =
     if expr |> Dlr.isStatic then
       expr
@@ -191,7 +191,7 @@ module internal Utils =
       temp :> Dlr.Expr
 
   ///
-  module internal Convert =
+  module Convert =
 
     ///
     let private convert (expr:Dlr.Expr) test unbox fallback =
@@ -232,7 +232,7 @@ module internal Utils =
       | _ -> convert expr Box.isObject Box.unboxObject fallback
       //Dlr.callStaticT<TC> "ToObject" [ctx.Env; expr]
 
-    
+
   ///
   let ensureObject (ctx:Ctx) (expr:Dlr.Expr) ifObj ifClr =
     match expr.Type |> TypeTag.OfType with
@@ -242,14 +242,14 @@ module internal Utils =
     | TypeTags.Bool
     | TypeTags.String
     | TypeTags.Undefined
-    | TypeTags.Number -> 
+    | TypeTags.Number ->
       let expr = Convert.toObject ctx expr
       tempBlock expr (fun expr -> [ifObj expr])
 
-    | TypeTags.Box -> 
+    | TypeTags.Box ->
       tempBlock expr (fun expr ->
         [
-          Dlr.ternary 
+          Dlr.ternary
             (Box.isObject expr)
             (ifObj (Box.unboxObject expr))
             (Dlr.ternary
@@ -267,13 +267,13 @@ module internal Utils =
     | TypeTags.Bool
     | TypeTags.String
     | TypeTags.Undefined
-    | TypeTags.Number -> 
+    | TypeTags.Number ->
       Dlr.callGeneric ctx.Env "RaiseTypeError" [typeof<BV>] [!!!ErrorUtils.nextErrorId()]
 
-    | TypeTags.Box -> 
+    | TypeTags.Box ->
       tempBlock expr (fun expr ->
         [
-          Dlr.ternary 
+          Dlr.ternary
             (Box.isFunction expr)
             (ifFunc (Box.unboxFunction expr))
             (Dlr.ternary

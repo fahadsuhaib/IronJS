@@ -6,7 +6,7 @@ open IronJS.Runtime
 open IronJS.Support.Aliases
 open IronJS.Support.CustomOperators
 
-module internal Number =
+module Number =
 
   ///
   let private constructor' (ctor:FO) (this:CO) (args:Args) =

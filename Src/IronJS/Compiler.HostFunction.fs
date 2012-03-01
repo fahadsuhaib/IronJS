@@ -1,6 +1,6 @@
 ﻿namespace IronJS.Compiler
 
-module internal HostFunction =
+module HostFunction =
 
   open System
   open IronJS
@@ -14,14 +14,14 @@ module internal HostFunction =
   let makeInvoke<'a when 'a :> Delegate and 'a : not struct> func arguments =
     let delegateField = (Dlr.castT<HFO<'a>> func) .-> "Delegate"
     let invoke = Dlr.invoke delegateField arguments
-    if invoke.Type = typeof<Void> 
+    if invoke.Type = typeof<Void>
       then Dlr.Fast.block [||] [|invoke; Utils.Constants.Boxed.undefined|]
-      elif invoke.Type = typeof<BV> 
+      elif invoke.Type = typeof<BV>
         then invoke
         else Utils.box invoke
 
   let concatArguments<'a> (func:Dlr.Expr) this arguments =
-    if typeof<'a> $ DelegateUtils.hasInternalParameters 
+    if typeof<'a> $ DelegateUtils.hasInternalParameters
       then arguments $ Array.append [|func; this|]
       else arguments
 
@@ -36,12 +36,12 @@ module internal HostFunction =
     #endif
 
     lambda.Compile()
-    
-  let variadicArgs () = 
+
+  let variadicArgs () =
     Dlr.paramT<Args> "~args"
 
   let defaultArg env (type':Type) =
-    if type' == typeof<BV> 
+    if type' == typeof<BV>
       then Utils.Constants.Boxed.undefined
       elif type' == typeof<CO> || type'.IsSubclassOf(typeof<CO>)
         then Dlr.default' type'
@@ -50,14 +50,14 @@ module internal HostFunction =
   let compile<'a when 'a :> Delegate and 'a : not struct> (f:FO) callsiteType =
     let hostType = typeof<'a>
 
-    if hostType == callsiteType then 
+    if hostType == callsiteType then
       (f :?> HFO<'a>).Delegate :> Delegate
 
     else
       let func = functionParameter()
       let this = thisParameter()
 
-      let hostIsVariadic = hostType $ DelegateUtils.hasVariadicParameter 
+      let hostIsVariadic = hostType $ DelegateUtils.hasVariadicParameter
       let callsiteIsVariadic = callsiteType $ DelegateUtils.hasVariadicParameter
       let hostIsStatic = not hostIsVariadic
       let callsiteIsStatic = not callsiteIsVariadic
@@ -76,21 +76,21 @@ module internal HostFunction =
         // Create all the DLR parameters we need for the public
         // arguments that will be passed to the call site
         let callsiteArgs =
-          callsiteType 
+          callsiteType
           $ DelegateUtils.getPublicParameterTypes
           $ Array.mapi Dlr.paramI
 
         // All the arguments to our host function
-        let hostArguments = 
-        
-          let hostVariadicArgs = 
-            callsiteArgs 
+        let hostArguments =
+
+          let hostVariadicArgs =
+            callsiteArgs
             $ Array.map Utils.box     // Map over the callsite args and box all values
             $ Dlr.newArrayItemsT<BV>  // Create an array out of all the boxed values
 
           // Prepend the func and this arguments
           concatArguments<'a> func this [|hostVariadicArgs|]
-          
+
         // Create invoke call
         let invoke = makeInvoke<'a> func (hostArguments)
 
@@ -106,21 +106,21 @@ module internal HostFunction =
         let argsLength = callsiteArgs .-> "Length"
         let env = func .-> "Env"
 
-        let hostArguments = 
-          
+        let hostArguments =
+
           let hostStaticArgs =
-            hostType 
+            hostType
             $ DelegateUtils.getPublicParameterTypes
             $ Array.mapi (fun i type' ->
                 let argsIndex = Dlr.indexInt callsiteArgs i
 
-                Dlr.ternary (!!!i .< argsLength) 
+                Dlr.ternary (!!!i .< argsLength)
                   (DlrTC.ConvertTo(env, argsIndex, type'))
                   (defaultArg env type')
               )
 
           concatArguments<'a> func this hostStaticArgs
-          
+
         let invoke = makeInvoke<'a> func hostArguments
         let callsiteParameters = lambadArguments func this [|callsiteArgs|]
         makeLambda callsiteType callsiteParameters invoke
@@ -131,24 +131,24 @@ module internal HostFunction =
         let hostParameterTypes = hostType $ DelegateUtils.getPublicParameterTypes
 
         let callsiteParameters =
-          callsiteType 
+          callsiteType
           $ DelegateUtils.getPublicParameterTypes
           $ Array.mapi Dlr.paramI
 
-        // The parameters to transfer to 
+        // The parameters to transfer to
         // the host delegate have three possible cases
         let parametersToTransfer =
           let csLength = callsiteParameters.Length
           let hLength = hostParameterTypes.Length
           let callsiteParameters =
             callsiteParameters
-            $ Seq.cast<Dlr.Expr> 
+            $ Seq.cast<Dlr.Expr>
             $ Seq.toArray
 
           // Case 1: We got more arguments then we need
           // so just throw the once we don't need away
           if csLength > hLength then
-            callsiteParameters 
+            callsiteParameters
             $ Seq.take hLength
             $ Seq.toArray
 
@@ -166,14 +166,14 @@ module internal HostFunction =
             callsiteParameters
 
         //
-        let convert = 
+        let convert =
           Microsoft.FSharp.Core.FuncConvert.FuncFromTupled(DlrTC.ConvertTo)
 
         //
         let hostArguments =
-          Array.map2 (convert env) parametersToTransfer hostParameterTypes 
-          $ concatArguments<'a> func this 
-          
+          Array.map2 (convert env) parametersToTransfer hostParameterTypes
+          $ concatArguments<'a> func this
+
         //
         let invoke = makeInvoke<'a> func hostArguments
         let callsiteParameters = lambadArguments func this callsiteParameters

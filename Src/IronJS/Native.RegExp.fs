@@ -8,7 +8,7 @@ open IronJS
 open IronJS.Runtime
 open IronJS.Support.CustomOperators
 
-module internal RegExp =
+module RegExp =
 
   /// These steps are outlined in the ECMA-262, Section 15.10.4.1
   let private constructor' (f:FO) (o:CO) (pattern:BV) (flags:BV) =

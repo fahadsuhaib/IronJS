@@ -1,8 +1,8 @@
 ﻿namespace IronJS.Compiler
 
 [<RequireQualifiedAccess>]
-module internal Lexer =
-  
+module Lexer =
+
   open IronJS
   open IronJS.Support.Aliases
 
@@ -11,8 +11,8 @@ module internal Lexer =
   open System.Collections.Generic
 
   module private Char =
-    
-    type private Cat = 
+
+    type private Cat =
       Globalization.UnicodeCategory
 
     let inline isAlpha c = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
@@ -21,7 +21,7 @@ module internal Lexer =
     let inline isNonOctalDigit c = c = '8' && c = '9'
     let inline isHex c = isDecimal c || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')
     let inline isQuote c = c = '"' || c = '\''
-    let inline isLineTerminator c = 
+    let inline isLineTerminator c =
       match c with
       | '\n' | '\r' | '\u2028' | '\u2029' -> true
       | _ -> false
@@ -64,7 +64,7 @@ module internal Lexer =
       | Cat.ConnectorPunctuation -> true
       | _ -> int c = 0x200C || int c = 0x200D
 
-    let inline isIdentifierNoEscape c = 
+    let inline isIdentifierNoEscape c =
       if c |> isAlpha || c = '_' || c = '$' || c |> isDecimal
         then true
         else c |> isUnicodeIdentifier
@@ -74,7 +74,7 @@ module internal Lexer =
 
     let inline isSimplePunctuation c =
       match c with
-      | '{' | '}' | '(' | ')' | '[' | ']' 
+      | '{' | '}' | '(' | ')' | '[' | ']'
       | ';' | ',' | '?' | ':' | '~' | '#' -> true
       | _ -> false
 
@@ -111,7 +111,7 @@ module internal Lexer =
     let [<Literal>] While = 25
     let [<Literal>] With = 26
     let [<Literal>] For = 100
-    
+
     //Punctuations
     let [<Literal>] LeftBrace = 27
     let [<Literal>] RightBrace = 28
@@ -161,7 +161,7 @@ module internal Lexer =
     let [<Literal>] AssignBitwiseOr = 72
     let [<Literal>] AssignBitwiseXor = 73
     let [<Literal>] Dot = 74
-    
+
     //Literals
     let [<Literal>] True = 75
     let [<Literal>] False = 76
@@ -175,12 +175,12 @@ module internal Lexer =
     let [<Literal>] HexLiteral = 84
     let [<Literal>] OctalLiteral = 85
     let [<Literal>] Directive = 90
-    
+
     //Markers
     let [<Literal>] StartOfInput = 120
     let [<Literal>] EndOfInput = 121
 
-    let private names = 
+    let private names =
       [
         (Break, "break")
         (Case, "case")
@@ -271,12 +271,12 @@ module internal Lexer =
         (EndOfInput, "<end-of-input>")
       ] |> Map.ofList
 
-    let getName n = 
+    let getName n =
       names |> Map.find n
 
   type Token = int * string * int * int
 
-  let private keywordMap = 
+  let private keywordMap =
     // Sadly a normal Dictionary is so
     // much faster then a F# Map that
     // it's worth using it
@@ -318,35 +318,35 @@ module internal Lexer =
     // Dictionary as keywordMap
     new Dictionary<string, int>(
       [
-        ("!", Symbol.LogicalNot) 
-        ("==", Symbol.Equal) 
-        ("!=", Symbol.NotEqual) 
-        ("===", Symbol.StrictEqual) 
+        ("!", Symbol.LogicalNot)
+        ("==", Symbol.Equal)
+        ("!=", Symbol.NotEqual)
+        ("===", Symbol.StrictEqual)
         ("!==", Symbol.StrictNotEqual)
-        ("<", Symbol.LessThan) 
-        (">", Symbol.GreaterThan) 
+        ("<", Symbol.LessThan)
+        (">", Symbol.GreaterThan)
         ("<=", Symbol.LessThanOrEqual)
         (">=", Symbol.GreaterThanOrEqual)
         ("+", Symbol.Plus)
-        ("-", Symbol.Minus) 
-        ("*", Symbol.Multiply) 
-        ("%", Symbol.Modulo) 
-        ("++", Symbol.Increment) 
+        ("-", Symbol.Minus)
+        ("*", Symbol.Multiply)
+        ("%", Symbol.Modulo)
+        ("++", Symbol.Increment)
         ("--", Symbol.Decrement)
-        ("<<", Symbol.LeftShift) 
-        (">>", Symbol.RightShift) 
-        (">>>", Symbol.URightShift) 
-        ("&", Symbol.BitwiseAnd) 
+        ("<<", Symbol.LeftShift)
+        (">>", Symbol.RightShift)
+        (">>>", Symbol.URightShift)
+        ("&", Symbol.BitwiseAnd)
         ("|", Symbol.BitwiseOr)
-        ("^", Symbol.BitwiseXor) 
-        ("&&", Symbol.LogicalAnd) 
-        ("||", Symbol.LogicalOr) 
-        ("=", Symbol.Assign) 
+        ("^", Symbol.BitwiseXor)
+        ("&&", Symbol.LogicalAnd)
+        ("||", Symbol.LogicalOr)
+        ("=", Symbol.Assign)
         ("+=", Symbol.AssignAdd)
-        ("-=", Symbol.AssignSubtract) 
-        ("*=", Symbol.AssignMultiply) 
-        ("%=", Symbol.AssignModulo) 
-        ("<<=", Symbol.AssignLeftShift) 
+        ("-=", Symbol.AssignSubtract)
+        ("*=", Symbol.AssignMultiply)
+        ("%=", Symbol.AssignModulo)
+        ("<<=", Symbol.AssignLeftShift)
         (">>=", Symbol.AssignSignedRightShift)
         (">>>=", Symbol.AssignUnsignedRightShift)
         ("&=", Symbol.AssignBitwiseAnd)
@@ -355,8 +355,8 @@ module internal Lexer =
       ] |> Map.ofList
     )
 
-  let private reservedKeywords = 
-    let add name (set:HashSet<string>) = 
+  let private reservedKeywords =
+    let add name (set:HashSet<string>) =
       set.Add(name) |> ignore
       set
 
@@ -393,14 +393,14 @@ module internal Lexer =
     |> add "double"
     |> add "enum"
 
-  module private Input = 
-    
+  module private Input =
+
     [<NoComparison>]
-    type T = 
+    type T =
       val mutable File : string
       val mutable Source : string
       val mutable Index : int
-      
+
       val mutable Char : Char
       val mutable Line : int
       val mutable Column : int
@@ -416,7 +416,7 @@ module internal Lexer =
         File = "<unknown>"
         Source = source
         Index = 0
-        
+
         Char = '\000'
         Line = 1
         Column = 0
@@ -429,7 +429,7 @@ module internal Lexer =
         Buffer = Text.StringBuilder(1024)
       }
 
-      member x.InsideParentheses = 
+      member x.InsideParentheses =
         x.ParenthesesNesting > 0
 
     let error (t:T) (msg:string) =
@@ -443,10 +443,10 @@ module internal Lexer =
     let inline newline (t:T) = t.Line <- t.Line + 1
     let inline current (t:T) = t.Source.[t.Index]
     let inline previous (t:T) = t.Source.[t.Index-1]
-     
+
     let inline continue' (t:T) = t.Index < t.Source.Length
     let inline isvalid (t:T) = t.Index < t.Source.Length
-    
+
     let inline peek (t:T) = t.Source.[t.Index+1]
     let inline canPeek (t:T) = t.Index+1 < t.Source.Length
     let inline trypeek c (t:T) = t |> canPeek && t |> peek = c
@@ -458,18 +458,18 @@ module internal Lexer =
       t.StoredLine <- t.Line
       t.StoredColumn <- t.Column
 
-    let inline advance (t:T) = 
+    let inline advance (t:T) =
       t.Index <- t.Index + 1
       t.Column <- t.Column + 1
 
-    let inline skip n (t:T) = 
+    let inline skip n (t:T) =
       t.Index <- t.Index + n
       t.Column <- t.Column + n
 
     let inline nextLine (t:T) =
-      if t |> current = '\r' && t |> canPeek && t |> peek = '\n' 
+      if t |> current = '\r' && t |> canPeek && t |> peek = '\n'
         then t |> advance
-        
+
       t.Line <- t.Line + 1
       t.Column <- 0
 
@@ -480,7 +480,7 @@ module internal Lexer =
       t.Buffer.Length > 0 && t.Buffer.[t.Buffer.Length-1] = '.'
 
     let inline buffer (t:T) (c:Char) = t.Buffer.Append(c) |> ignore
-    let inline bufferClear (t:T) = 
+    let inline bufferClear (t:T) =
       #if CLR2
       t.Buffer.Remove(0, t.Buffer.Length) |> ignore
       #else
@@ -516,7 +516,7 @@ module internal Lexer =
   let inline private readHexDigit (s:Input.T) =
     s |> advance
     let c = s |> current
-    if c |> isHex 
+    if c |> isHex
       then c
       else Error.invalidHexDigit c |> error s
 
@@ -538,9 +538,9 @@ module internal Lexer =
       s |> advance
 
       match s |> current with
-      | c when c |> isOctal -> 
+      | c when c |> isOctal ->
         let value = value * 8 + (int c - 48)
-        if value * 8 > 255 
+        if value * 8 > 255
           then false, value
           else true, value
 
@@ -553,7 +553,7 @@ module internal Lexer =
     | _, value -> value |> char
 
   (*
-  // Parses a punctuation that only consists 
+  // Parses a punctuation that only consists
   // of a single character
   *)
   let private simplePunctuation (s:Input.T) c =
@@ -562,11 +562,11 @@ module internal Lexer =
 
     let symbol =
       match c with
-      | '(' -> 
+      | '(' ->
         s.ParenthesesNesting <- s.ParenthesesNesting + 1
         Symbol.LeftParenthesis
 
-      | ')' -> 
+      | ')' ->
         s.ParenthesesNesting <- s.ParenthesesNesting - 1
         Symbol.RightParenthesis
 
@@ -585,7 +585,7 @@ module internal Lexer =
     match symbol with
     | Symbol.Semicolon ->
       s.IgnoreLineTerminator <- true
-      s.Previous <- Symbol.Semicolon 
+      s.Previous <- Symbol.Semicolon
       Symbol.Semicolon , null, s.StoredLine, s.StoredColumn
 
     | _ ->
@@ -594,7 +594,7 @@ module internal Lexer =
   (*
   // Parses an identifier or keyword
   *)
-  let private invalidCharInIdentifier = 
+  let private invalidCharInIdentifier =
     sprintf "Invalid character '%s' in identifier"
 
   let private reservedKeyword =
@@ -613,14 +613,14 @@ module internal Lexer =
 
     while s |> isvalid && loop do
       match s |> current with
-      | '\\' -> 
+      | '\\' ->
         if s |> trypeek 'u' then
 
           s |> advance
 
           match s |> readUnicodeEscape with
           | c when c |> isIdentifierNoEscape -> c |> buffer s
-          | c -> c |> escapeChar |> invalidCharInIdentifier |> error s  
+          | c -> c |> escapeChar |> invalidCharInIdentifier |> error s
 
           s |> advance
 
@@ -637,14 +637,14 @@ module internal Lexer =
     let identifier = s |> bufferValue
     let mutable keywordSymbol = Symbol.StartOfInput
 
-    if keywordMap.TryGetValue(identifier, &keywordSymbol) 
+    if keywordMap.TryGetValue(identifier, &keywordSymbol)
       then s |> outputSymbol keywordSymbol
       elif reservedKeywords.Contains(identifier)
         then identifier |> reservedKeyword |> error s
         else s |> output Symbol.Identifier identifier
 
   (*
-  // Parses a single line comment that 
+  // Parses a single line comment that
   // starts with // and ends with newline
   *)
   let private singlelineComment (s:Input.T) =
@@ -661,7 +661,7 @@ module internal Lexer =
         s |> advance
 
   (*
-  // Parses a multi-line comment that 
+  // Parses a multi-line comment that
   // starts with /* and ends with */
   *)
   let private multilineComment (s:Input.T) =
@@ -675,9 +675,9 @@ module internal Lexer =
 
       s |> current |> buffer s
       s |> advance
-      
+
     s |> skip 2
-    
+
   (*
   // Numeric literal, such as: 5, 0.5, .5
   *)
@@ -708,7 +708,7 @@ module internal Lexer =
     s |> storePosition
     s |> bufferClear
     s |> skip 2
-    
+
     '0' |> buffer s
     'x' |> buffer s
 
@@ -721,7 +721,7 @@ module internal Lexer =
         c <- s |> current
 
     s |> outputBuffer Symbol.HexLiteral
-    
+
   (*
   // Octal literal, such as: 0777
   *)
@@ -729,7 +729,7 @@ module internal Lexer =
     s |> storePosition
     s |> bufferClear
     s |> advance
-    
+
     if s |> continue' then
       let mutable c = s |> current
 
@@ -741,7 +741,7 @@ module internal Lexer =
     s |> outputBuffer Symbol.OctalLiteral
 
   (*
-  // Lexes a punctuation that could 
+  // Lexes a punctuation that could
   // consist of more then one character
   *)
   let private punctuation (s:Input.T) (first:char) =
@@ -757,17 +757,17 @@ module internal Lexer =
       if s |> continue' then
         let newBuffer = buffer + (s |> current |> string)
 
-        if punctuationMap.ContainsKey(newBuffer) 
+        if punctuationMap.ContainsKey(newBuffer)
           then newBuffer |> punctuation s
           else buffer |> makeToken s
 
       else
         buffer |> makeToken s
-        
+
     first |> string |> punctuation s
 
   (*
-  // Parses a literal string, 
+  // Parses a literal string,
   // such as 'foo' or 'bar'
   *)
   let private stringLiteral (s:Input.T) (stop:char) =
@@ -780,7 +780,7 @@ module internal Lexer =
       if s |> continue' then
         match s |> current with
         //Deal with escape sequence
-        | '\\' -> 
+        | '\\' ->
           s |> advance
 
           match s |> current with
@@ -798,9 +798,9 @@ module internal Lexer =
 
           //Octal escape or null char
           | '0' ->
-            if s |> canPeek && s |> peek |> isDecimal 
+            if s |> canPeek && s |> peek |> isDecimal
               then s |> readOctalEscape 0 |> buffer s
-              else char 0 |> buffer s 
+              else char 0 |> buffer s
 
           //Octal escape sequence
           | '1' -> s |> readOctalEscape 1 |> buffer s
@@ -816,7 +816,7 @@ module internal Lexer =
             // Handle escaped \r\n
             if c = '\r' && s |> trypeek '\n'
               then s |> advance
-            
+
           //Any other character
           | c ->
             c |> buffer s
@@ -829,11 +829,11 @@ module internal Lexer =
           s |> outputBuffer Symbol.String
 
         //Line terminators are not allowed
-        | c when c |> isLineTerminator -> 
+        | c when c |> isLineTerminator ->
           Error.newlineIn "string literal" |> error s
 
         //Any other character
-        | c -> 
+        | c ->
           c |> buffer s
           s |> stringLiteral
 
@@ -851,10 +851,10 @@ module internal Lexer =
 
     while s |> isvalid && (c <> '/' || inClass) do
       match c with
-      | '\\' -> 
+      | '\\' ->
         '\\' |> buffer s
         s |> advance
-        
+
         if s |> current |> isLineTerminator then
           Error.newlineIn "regexp literal"  |> error s
 
@@ -862,12 +862,12 @@ module internal Lexer =
         s |> advance
 
         if s |> isvalid then
-          c <- s |> current 
+          c <- s |> current
 
       | _ when c |> isLineTerminator  ->
         Error.newlineIn "regexp literal"  |> error s
 
-      | _ -> 
+      | _ ->
         match c with
         | '[' -> inClass <- true
         | ']' -> inClass <- false
@@ -877,17 +877,17 @@ module internal Lexer =
         s |> advance
 
         if s |> isvalid then
-          c <- s |> current 
-        
+          c <- s |> current
+
     //Tries to read one of the modifier characters: m, g and i
     let readModifier (s:Input.T) =
-      let isModifier c =  
+      let isModifier c =
         c = 'm' || c = 'g' || c = 'i'
 
       s |> advance
 
       if s |> isvalid then
-        
+
         match s |> current  with
         | '\\' when s |> trypeek 'u' ->
           s |> advance
@@ -903,7 +903,7 @@ module internal Lexer =
         | c when c |> isModifier ->
           c |> buffer s
           true
-          
+
         | _ ->
           ' ' |> buffer s
           false
@@ -919,8 +919,8 @@ module internal Lexer =
 
     //Read out all the modifiers
     //put spaces instead of missing ones
-    if s |> readModifier then 
-      if s |> readModifier then 
+    if s |> readModifier then
+      if s |> readModifier then
         if s |> readModifier
           then s |> advance
       else ' ' |> buffer s
@@ -937,11 +937,11 @@ module internal Lexer =
     let buffer = Text.StringBuilder(512)
     let s = source |> Input.create
 
-    let rec lexer () = 
+    let rec lexer () =
       if s |> continue' then
         match s |> current with
         // White space (not new lines)
-        | c when c |> isWhiteSpace -> 
+        | c when c |> isWhiteSpace ->
           s |> advance
           lexer()
 
@@ -956,7 +956,7 @@ module internal Lexer =
         // Identifiers or keywords
         | c when c |> isIdentifierStart ->
           c |> identifier s
-        
+
         // String literals
         | c when c |> isQuote ->
           c |> stringLiteral s
@@ -967,17 +967,17 @@ module internal Lexer =
           s |> advance
 
           match s |> current with
-          | '/' -> 
+          | '/' ->
             s |> singlelineComment
             lexer()
 
-          | '*' -> 
+          | '*' ->
             s |> multilineComment
             lexer()
 
           | _ ->
             match s.Previous with
-            | Symbol.Identifier 
+            | Symbol.Identifier
             | Symbol.Number
             | Symbol.String
             | Symbol.HexLiteral
@@ -992,21 +992,21 @@ module internal Lexer =
             | Symbol.Null ->
 
               match s |> current with
-              | '=' -> 
+              | '=' ->
                 s |> advance
                 s |> outputSymbol Symbol.AssignDivide
 
-              | _ -> 
+              | _ ->
                 s |> outputSymbol Symbol.Divide
 
             | Symbol.RightBrace when s.InsideParentheses ->
-              
+
               match s |> current with
-              | '=' -> 
+              | '=' ->
                 s |> advance
                 s |> outputSymbol Symbol.AssignDivide
 
-              | _ -> 
+              | _ ->
                 s |> outputSymbol Symbol.Divide
 
             | _ ->
@@ -1014,10 +1014,10 @@ module internal Lexer =
 
         // Dot operator, or number
         | '.' ->
-          if s |> canPeek && s |> peek |> isDecimal then 
+          if s |> canPeek && s |> peek |> isDecimal then
             s |> numericLiteral '.'
 
-          else 
+          else
             s |> storePosition
             s |> advance
             s |> outputSymbol Symbol.Dot
@@ -1025,26 +1025,26 @@ module internal Lexer =
         // Decimal, Hex and Octal numbers
         | c when c |> isDecimal ->
           match c with
-          | '0' -> 
+          | '0' ->
             if s |> canPeek then
-              
+
               match s |> peek with
-              | '.' -> 
+              | '.' ->
                 s |> numericLiteral '0'
 
               | 'x' | 'X' -> s |> hexLiteral
               | c when c |> isOctal -> s |> octalLiteral
-              | c when c |> isNonOctalDigit -> 
+              | c when c |> isNonOctalDigit ->
                 Error.invalidOctalDigit c |> error s
 
-              | _ -> 
+              | _ ->
                 s |> numericLiteral c
 
             else
               s |> numberZero
 
           | _ -> s |> numericLiteral c
-            
+
         // End of line
         | c when c |> isLineTerminator ->
           s |> storePosition
@@ -1054,16 +1054,16 @@ module internal Lexer =
           let p = s.Previous
 
           // This check makes sure we only output one
-          // line terminator or semicolon each time 
+          // line terminator or semicolon each time
           // which simplifies (and speeds up) parsing
-          if s.IgnoreLineTerminator then 
+          if s.IgnoreLineTerminator then
             lexer()
 
-          else 
+          else
             s.IgnoreLineTerminator <- true
             Symbol.LineTerminator, null, s.StoredLine, s.StoredColumn
 
-        | c -> 
+        | c ->
           Error.unrecognizedInput c |> error s
 
       else

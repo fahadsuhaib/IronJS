@@ -8,7 +8,7 @@ open IronJS.Runtime
 open IronJS.Support.Aliases
 open IronJS.Compiler
 
-module internal Parser =
+module Parser =
 
   type VariableData = {
     DefinedAt : (int * int) option
@@ -38,25 +38,25 @@ module internal Parser =
       Missing = ref Set.empty
     }
 
-    member x.AddChild c = 
+    member x.AddChild c =
       x.Children := c :: !x.Children
 
       match c.Scope with
       | Ast.ScopeOption.Function _ -> ()
       | Ast.ScopeOption.Catch c ->
         match x.Scope with
-        | Ast.ScopeOption.Function s -> 
+        | Ast.ScopeOption.Function s ->
           s := {!s with CatchScopes = (!s).CatchScopes @ [c]}
 
         | Ast.ScopeOption.Catch s ->
           s := {!s with CatchScopes = (!s).CatchScopes @ [c]}
 
-    member x.AddVariable v = 
+    member x.AddVariable v =
       x.Variables := !x.Variables |> Set.add v
 
-    member x.AddParameter p = 
+    member x.AddParameter p =
       let replaceVariable index parameter var =
-        if parameter = var 
+        if parameter = var
           then sprintf "%s~%i" var index
           else var
 
@@ -67,11 +67,11 @@ module internal Parser =
 
         x.Variables := !x.Variables |> Set.map replace
         x.Parameters := !x.Parameters |> List.map replace
-      
+
       x.Parameters := !x.Parameters @ [p]
       x.Variables := !x.Variables |> Set.add p
 
-    member x.AddMissing n = 
+    member x.AddMissing n =
       x.Missing := !x.Missing |> Set.add n
 
     member x.HasVariable v =
@@ -84,7 +84,7 @@ module internal Parser =
     Tokenizer : unit -> Lexer.Token
 
     // It's just so much faster
-    // to use mutable values 
+    // to use mutable values
     // then creating a new State
     // object for each token consumed
     mutable Token : Lexer.Token
@@ -100,34 +100,34 @@ module internal Parser =
     Null : (Lexer.Token -> State -> Ast.Tree) array
     Stmt : (Lexer.Token -> State -> Ast.Tree) array
     Left : (Lexer.Token -> Ast.Tree -> State -> Ast.Tree) array
-    
+
     ScopeData : ScopeData ref
     FunctionData : ScopeData ref
-  } 
+  }
     #if DEBUG
     with
-    member x.TokenName = 
+    member x.TokenName =
       let s, _, _, _ = x.Token in s |> Lexer.Symbol.getName
 
-    member x.TokenValue = 
+    member x.TokenValue =
       let _, v, _, _ = x.Token in v
 
-    member x.TokenLine = 
+    member x.TokenLine =
       let _, _, l, _ = x.Token in l
 
-    member x.TokenColumn = 
+    member x.TokenColumn =
       let _, _, _, c = x.Token in c
     #endif
 
   type P = State
   module S = Lexer.Symbol
 
-  let unexpectedEnd () = 
+  let unexpectedEnd () =
     Error.CompileError.Raise(Error.unexpectedEnd)
 
   let unexpectedToken parser =
     let type' = parser.Token |> parser.PrettyPrint
-    let pos = parser.Token |> parser.Position 
+    let pos = parser.Token |> parser.Position
     let msg = sprintf "Unexpected: %s"  type'
     Error.CompileError.Raise(msg, pos, parser.Source, parser.File)
 
@@ -142,19 +142,19 @@ module internal Parser =
 
     Token = Unchecked.defaultof<Lexer.Token>
     Tokenizer = Unchecked.defaultof<unit -> Lexer.Token>
-    
+
     Position = position
     PrettyPrint = prettyPrint
-    
+
     BindingPower = Array.zeroCreate<int> 150
     Null = Array.zeroCreate<Lexer.Token -> State -> Ast.Tree> 150
     Stmt = Array.zeroCreate<Lexer.Token -> State -> Ast.Tree> 150
     Left = Array.zeroCreate<Lexer.Token -> Ast.Tree -> State -> Ast.Tree> 150
-    
+
     ScopeData = ref Unchecked.defaultof<ScopeData>
     FunctionData = ref Unchecked.defaultof<ScopeData>
   }
-  
+
   let smd (s:int) funct p = p.Stmt.[s] <- funct; p
   let nud (s:int) funct p = p.Null.[s] <- funct; p
   let led (s:int) funct p = p.Left.[s] <- funct; p
@@ -164,7 +164,7 @@ module internal Parser =
   let inline value (_, v:string, _, _) = v
   let inline position (_, _, l:int, c:int) = l, c
 
-  let prettyPrint (t:Lexer.Token) = 
+  let prettyPrint (t:Lexer.Token) =
     match t with
     | symbol, null, _, _ -> sprintf "%s" (symbol |> S.getName)
     | symbol, value, _, _ -> sprintf "%s (%s)" (symbol |> S.getName) value
@@ -182,23 +182,23 @@ module internal Parser =
     let [<Literal>] TypeOf = 170
     let [<Literal>] Void = 170
     let [<Literal>] Delete = 170
-    let [<Literal>] Multiply = 160 
+    let [<Literal>] Multiply = 160
     let [<Literal>] Divide = 160
-    let [<Literal>] Modulo = 160 
+    let [<Literal>] Modulo = 160
     let [<Literal>] Add = 150
     let [<Literal>] Subtract = 150
-    let [<Literal>] BitwiseShift = 140 
-    let [<Literal>] Relational = 130 
+    let [<Literal>] BitwiseShift = 140
+    let [<Literal>] Relational = 130
     let [<Literal>] In = 130
     let [<Literal>] InstanceOf = 130
-    let [<Literal>] Equality = 120 
-    let [<Literal>] BitwiseAnd = 110 
-    let [<Literal>] BitwiseXor = 100 
-    let [<Literal>] BitwiseOr = 90 
-    let [<Literal>] LogicalAnd = 80 
-    let [<Literal>] LogicalOr = 70 
-    let [<Literal>] Condition = 60 
-    let [<Literal>] Assignment = 50 
+    let [<Literal>] Equality = 120
+    let [<Literal>] BitwiseAnd = 110
+    let [<Literal>] BitwiseXor = 100
+    let [<Literal>] BitwiseOr = 90
+    let [<Literal>] LogicalAnd = 80
+    let [<Literal>] LogicalOr = 70
+    let [<Literal>] Condition = 60
+    let [<Literal>] Assignment = 50
     let [<Literal>] Comma = 40
 
   /// Util function for converting
@@ -209,12 +209,12 @@ module internal Parser =
   let parseNumber (s:string) =
     let mutable d = 0.0
     let mutable bi = Unchecked.defaultof<Numerics.BigInteger>
-    if Double.TryParse(s, anyNumber, invariantCulture, &d) 
+    if Double.TryParse(s, anyNumber, invariantCulture, &d)
       then d
       #if LEGACY_BIGINT
       elif BigIntegerParser.TryParse(s, anyNumber, invariantCulture, &bi)
       #else
-      elif Numerics.BigInteger.TryParse(s, anyNumber, invariantCulture, &bi) 
+      elif Numerics.BigInteger.TryParse(s, anyNumber, invariantCulture, &bi)
       #endif
         then Double.PositiveInfinity
         else s |> invalidNumber |> Error.CompileError.Raise
@@ -222,18 +222,18 @@ module internal Parser =
   ///
   let hexToNumber (s:string) =
     let s =
-      if s.StartsWith("0x") 
+      if s.StartsWith("0x")
         then s.Substring(2)
         else s
 
     let mutable i = 0u
     let mutable bi = Unchecked.defaultof<bigint>
-    if UInt32.TryParse(s, NumberStyles.HexNumber, invariantCulture, &i) 
+    if UInt32.TryParse(s, NumberStyles.HexNumber, invariantCulture, &i)
       then i |> double
       #if LEGACY_BIGINT
-      elif BigIntegerParser.TryParse(s, NumberStyles.HexNumber, invariantCulture, &bi) 
+      elif BigIntegerParser.TryParse(s, NumberStyles.HexNumber, invariantCulture, &bi)
       #else
-      elif bigint.TryParse(s, NumberStyles.HexNumber, invariantCulture, &bi) 
+      elif bigint.TryParse(s, NumberStyles.HexNumber, invariantCulture, &bi)
       #endif
         then bi |> double
         else failwith "Invalid integer format"
@@ -263,25 +263,25 @@ module internal Parser =
     p.Token <- p.Tokenizer()
     p.LineTerminatorPassed <- p |> csymbol = S.LineTerminator
 
-    if p.LineTerminatorPassed then 
+    if p.LineTerminatorPassed then
       p.Token <- p.Tokenizer()
 
-  /// Consumes an identifier and 
+  /// Consumes an identifier and
   /// returns its name
   let consumeIdentifier (p:P) =
     match p.Token with
-    | S.Identifier, name, _, _ -> 
+    | S.Identifier, name, _, _ ->
       p |> consume
       name
 
-    | _ -> 
+    | _ ->
       p |> unexpectedToken
 
   /// Consumes the current token if it's
   /// symbol is equal to s and forwards
   /// to the next non-line terminator token
   let expect (s:int) (p:P) =
-    if p |> csymbol = s 
+    if p |> csymbol = s
       then p |> consume
       else p |> unexpectedToken
 
@@ -293,10 +293,10 @@ module internal Parser =
   let expression stop rbpw (p:P) =
     p.LineTerminatorPassed <- false
 
-    let rec expression left = 
-      if p.EndExpression then 
+    let rec expression left =
+      if p.EndExpression then
         p.EndExpression <- false
-        left 
+        left
 
       else
         if p |> csymbol <> stop && rbpw < (p |> cpower) then
@@ -306,16 +306,16 @@ module internal Parser =
             p |> led p.Token left |> expression
 
           else
-            if p.LineTerminatorPassed 
+            if p.LineTerminatorPassed
               then left
               else p |> unexpectedToken
 
         else
           left
-          
+
     let nud = p |> cnull
     if nud |> FSharp.Utils.notNull
-      then p |> nud p.Token |> expression 
+      then p |> nud p.Token |> expression
       else p |> unexpectedToken
 
   let powerExpression rbpw (p:P) = expression -1 rbpw p
@@ -329,19 +329,19 @@ module internal Parser =
   let tryEndStatement (p:P) =
     match p |> csymbol with
     | S.Semicolon
-    | S.LineTerminator -> 
+    | S.LineTerminator ->
       p |> consume
       true
 
     | S.EndOfInput
-    | S.RightBrace -> 
+    | S.RightBrace ->
       true
 
     | _ when p.LineTerminatorPassed ->
       p.LineTerminatorPassed <- false
       true
 
-    | _ -> 
+    | _ ->
       false
 
   /// Parses an expression statement, which
@@ -367,7 +367,7 @@ module internal Parser =
 
     // Normal expression, expect end of statement
     | _ ->
-      if p |> tryEndStatement 
+      if p |> tryEndStatement
         then expr
         else p |> unexpectedToken
 
@@ -376,9 +376,9 @@ module internal Parser =
   /// or an expression statement
   and statement (p:P) =
     let stmt = p |> cstmt
-    if stmt |> FSharp.Utils.notNull 
+    if stmt |> FSharp.Utils.notNull
       then p |> stmt p.Token
-      else p |> expressionStatement 
+      else p |> expressionStatement
 
   /// Parses a list of statements
   /// untill we reach end of input
@@ -389,55 +389,55 @@ module internal Parser =
       acc <- (p |> statement) :: acc
 
     acc |> List.rev
-    
+
   /// Parses a block, which is either
-  /// a single statement or a left curly brace 
-  /// followed by zero or more statements and then 
+  /// a single statement or a left curly brace
+  /// followed by zero or more statements and then
   /// a closing right curly brace
   let block (p:P) =
     let rec block acc (p:P) =
       match p |> csymbol with
-      | S.RightBrace -> 
+      | S.RightBrace ->
         p |> consume
         acc |> List.rev
 
-      | _ -> 
+      | _ ->
         p |> block ((p |> statement) :: acc)
 
     match p |> csymbol with
-    | S.LeftBrace -> 
+    | S.LeftBrace ->
       p |> consume
       p |> block [] |> Ast.Tree.Block
 
-    | _ -> 
+    | _ ->
       [p |> statement] |> Ast.Tree.Block
 
   /// Parses an argument list, which is
   /// zero or more expressions separated
-  /// by commas ending with a right 
+  /// by commas ending with a right
   /// parenthesis
   let argumentList (p:P) =
     let rec argumentList acc (p:P) =
       let acc = (p |> expression S.Comma 0) :: acc
 
       match p |> csymbol with
-      | S.RightParenthesis -> 
+      | S.RightParenthesis ->
         p |> consume
         acc |> List.rev
 
-      | S.Comma -> 
-        p |> consume 
+      | S.Comma ->
+        p |> consume
         p |> argumentList acc
 
-      | _ -> 
+      | _ ->
         p |> unexpectedToken
 
     match p |> csymbol with
-    | S.RightParenthesis ->  
+    | S.RightParenthesis ->
       p |> consume
       List.empty
 
-    | _ -> 
+    | _ ->
       p |> argumentList []
 
   /// Defines a binary operator
@@ -450,7 +450,7 @@ module internal Parser =
 
   /// Defines a unary operator
   let unary bwpr symbol operator p =
-    p |> nud symbol (fun _ p -> 
+    p |> nud symbol (fun _ p ->
       p |> consume
       Ast.Tree.Unary(operator, p |> powerExpression bwpr)
     )
@@ -459,7 +459,7 @@ module internal Parser =
   let simple symbol ast (p:P) =
     p |> nud symbol (fun _ p -> p |> consume; ast)
 
-  /// Defines a simple symbol that applies a function 
+  /// Defines a simple symbol that applies a function
   /// to a token for generating it's output AST
   let simplef symbol f (p:P) =
     p |> nud symbol (fun t p -> p |> consume; t |> f)
@@ -478,7 +478,7 @@ module internal Parser =
 
         // Read the right expression, which is any expression
         // that contains tokens with a binding power less than
-        // BindingPowers.Assignment - 1, which makes compound 
+        // BindingPowers.Assignment - 1, which makes compound
         // assignment right associative
         let power = BindingPowers.Assignment - 1
         let rightAst = p |> powerExpression power
@@ -498,11 +498,11 @@ module internal Parser =
         // we have to guard against a line terminator
         // just before the operator, and if we passed
         // one we mark the expression as done and return it
-        if p.LineTerminatorPassed then 
+        if p.LineTerminatorPassed then
           p.EndExpression <- true
           leftAst
 
-        else 
+        else
           // If we didn't pass a linet terminator, consume the
           // operator token and return a unary expression
           p |> consume
@@ -533,7 +533,7 @@ module internal Parser =
 
     match p |> csymbol with
     // try ... catch ... ?
-    | S.Catch -> 
+    | S.Catch ->
       p |> consume
 
       p |> expect S.LeftParenthesis
@@ -562,16 +562,16 @@ module internal Parser =
 
       match p |> csymbol with
       // try ... catch ... finally
-      | S.Finally -> 
+      | S.Finally ->
         p |> consume
         Ast.Tree.Try(body, catch, p |> block |> Some)
 
       // try ... catch
-      | _ -> 
+      | _ ->
         Ast.Tree.Try(body, catch, None)
 
     // try ... finally
-    | S.Finally -> 
+    | S.Finally ->
       p |> consume
       Ast.Tree.Try(body, None, p |> block |> Some)
 
@@ -624,13 +624,13 @@ module internal Parser =
 
   /// Implements: 12.11 The switch Statement
   let switch _ (p:P) =
-    
+
     // Parses the body of a switch case
     let rec parseCaseBody acc (p:P) =
       match p |> csymbol with
       | S.RightBrace
       | S.Case
-      | S.Default -> 
+      | S.Default ->
         Ast.Tree.Block (acc |> List.rev)
 
       | _ ->
@@ -640,7 +640,7 @@ module internal Parser =
     // Parses all cases in a switch statement
     let rec parseCases acc (p:P) =
       match p |> csymbol with
-      | S.Default -> 
+      | S.Default ->
         // default:
         p |> consume
         p |> expect S.Colon
@@ -653,7 +653,7 @@ module internal Parser =
 
         // case <expr>:
         let test = p |> anyExpression
-        p |> expect S.Colon 
+        p |> expect S.Colon
 
         let case = Ast.Cases.Case(test, p |> parseCaseBody [])
         p |> parseCases (case :: acc)
@@ -667,7 +667,7 @@ module internal Parser =
     p |> consume
 
     // The value expression to test against
-    let valueExpr = p |> grouping p.Token 
+    let valueExpr = p |> grouping p.Token
 
     // Expect and the left brace
     p |> expect S.LeftBrace
@@ -687,10 +687,10 @@ module internal Parser =
     let bodyAst = p |> block
 
     // Match the next symbol
-    // to see if it's an else 
+    // to see if it's an else
     // so we can handle that
     match p |> csymbol with
-    | S.Else -> 
+    | S.Else ->
       // Consume the else token
       p |> consume
 
@@ -701,12 +701,12 @@ module internal Parser =
         match p |> csymbol with
         | S.If -> Ast.Tree.IfElse(testAst, bodyAst, Some(if' p.Token p))
         | _ -> Ast.Tree.IfElse(testAst, bodyAst, Some(p |> block))
-        
+
       p.BlockLevel <- p.BlockLevel - 1
       stmt
 
     // If it's not an else, insert an an empty branch
-    | _ -> 
+    | _ ->
       p.BlockLevel <- p.BlockLevel - 1
       Ast.Tree.IfElse(testAst, bodyAst, None)
 
@@ -728,7 +728,7 @@ module internal Parser =
 
   /// Implements: 7.8.5 Regular Expression Literals
   let regExp t p =
-    
+
     // Utility function that checks if the n:th
     // position from length-3 is a valid regexp
     // modifier character or not
@@ -746,7 +746,7 @@ module internal Parser =
     let value = t |> value
 
     // Get the modifiers by checking
-    // the last three characters of 
+    // the last three characters of
     // the regexp value
     let modifiers =
         (value |> isRegExpModifier 0)
@@ -766,7 +766,7 @@ module internal Parser =
 
     // Read the next grouped expression
     let testAst = p |> grouping p.Token
-    
+
     // Read the body block
     let bodyAst = p |> block
 
@@ -822,7 +822,7 @@ module internal Parser =
     p |> expect S.Identifier
 
     Ast.Tree.Property(objectAst, identifier)
-    
+
   /// Implements: 11.2.1 Property Accessors
   /// The index version []
   let indexAccessor _ objectAst p =
@@ -855,7 +855,7 @@ module internal Parser =
     Ast.Tree.New(expr, [])
 
   /// Implements: 11.2.3 Function Calls
-  let call' _ functionAst p = 
+  let call' _ functionAst p =
     // Consumes the left parenthesis
     p |> consume
 
@@ -867,15 +867,15 @@ module internal Parser =
     // in that case de-construct it
     // and return that instead of the call
     match functionAst with
-    | Ast.Tree.New(constructorExpr, []) -> 
+    | Ast.Tree.New(constructorExpr, []) ->
       Ast.Tree.New(constructorExpr, argAsts)
 
     // Eval call
-    | Ast.Identifier "eval" -> 
-      
+    | Ast.Identifier "eval" ->
+
       match (!p.FunctionData).Scope with
       | Ast.ScopeOption.Catch _ -> ()
-      | Ast.ScopeOption.Function scope -> 
+      | Ast.ScopeOption.Function scope ->
         scope |> Ast.Utils.setContainsEval
 
       Ast.Tree.Eval(argAsts |> FSharp.List.headOr (lazy Ast.Tree.String("")))
@@ -883,9 +883,9 @@ module internal Parser =
     // Normal function call
     | _ ->
       Ast.Tree.Invoke(functionAst, argAsts)
-  
+
   /// Implements: 12.9 The return Statement
-  let return' _ p = 
+  let return' _ p =
     // Consume the current token
     p |> consume
 
@@ -900,10 +900,10 @@ module internal Parser =
     // Consume the throw token
     p |> consume
 
-    if p |> tryEndStatement 
+    if p |> tryEndStatement
       then Ast.Tree.Throw(Ast.Tree.Undefined)
       else Ast.Tree.Throw(p |> expressionStatement)
-      
+
   /// Implements: 12.8 The break Statement
   let break' _ p =
     // Consume the break token
@@ -912,9 +912,9 @@ module internal Parser =
     if p |> tryEndStatement
       then Ast.Tree.Break(None)
       else Ast.Tree.Break(p |> consumeIdentifier |> Some)
-      
+
   /// Implements: 12.7 The continue Statement
-  let continue' _ p = 
+  let continue' _ p =
     // Consume the continue token
     p |> consume
 
@@ -946,18 +946,18 @@ module internal Parser =
   /// Implements: 11.1.5 Object Initialiser
   let objectLiteral _ p =
 
-    // Utility function that parses a property name 
+    // Utility function that parses a property name
     // from either a string or an identifier
     let propertyName (p:P) =
       match p.Token with
       | S.Number, name, _, _
-      | S.Identifier, name, _, _  
-      | S.String, name, _, _ -> 
+      | S.Identifier, name, _, _
+      | S.String, name, _, _ ->
         p |> consume
         p |> expect S.Colon
         name
 
-      | _ -> 
+      | _ ->
         p |> unexpectedToken
 
     // Consume the left brace
@@ -970,7 +970,7 @@ module internal Parser =
         let property = (name, value)
 
         acc <- property :: acc
-            
+
         match p |> csymbol with
         | S.Comma -> p |> consume
         | S.RightBrace -> ()
@@ -985,10 +985,10 @@ module internal Parser =
   let private functionDefinitionNotAllowed =
     "function definition not allowed inside conditional statements or blocks"
 
-  /// Implements: 
+  /// Implements:
   let function' isDefinition _ p =
-    
-    // Function definitions are not 
+
+    // Function definitions are not
     // allowed within if statements
     if isDefinition && p.BlockLevel > 0 then
       functionDefinitionNotAllowed |> Error.CompileError.Raise
@@ -1005,15 +1005,15 @@ module internal Parser =
 
       // Create a new scope object
       let scope =
-        ref {Ast.Utils.createFunctionScope() with 
+        ref {Ast.Utils.createFunctionScope() with
               Id = id
-              GlobalLevel = 
+              GlobalLevel =
                 match parent.Scope with
                 | Ast.ScopeOption.Catch(s) -> (!s).GlobalLevel + 1
                 | Ast.ScopeOption.Function s -> (!s).GlobalLevel + 1
             }
 
-      let scopeData = 
+      let scopeData =
         let parent = Some parent
         let scope = Ast.ScopeOption.Function scope
         ScopeData.New id scope parent
@@ -1022,15 +1022,15 @@ module internal Parser =
       while p |> csymbol <> S.RightParenthesis do
         let name = p |> consumeIdentifier
 
-        // Add the parameter 
+        // Add the parameter
         name |> scopeData.AddParameter
 
         match p |> csymbol with
-        | S.Comma -> 
+        | S.Comma ->
           p |> consume
 
           if p |> csymbol <> S.Identifier then
-            p |> unexpectedToken 
+            p |> unexpectedToken
 
         | S.RightParenthesis -> ()
         | _ -> p |> unexpectedToken
@@ -1041,9 +1041,9 @@ module internal Parser =
       // Return scope
       scope, scopeData
 
-    let name = 
+    let name =
       match p.Token with
-      | S.Identifier, name, _, _ -> 
+      | S.Identifier, name, _, _ ->
 
         if isDefinition then
           (!p.ScopeData).AddVariable name
@@ -1060,7 +1060,7 @@ module internal Parser =
 
     if p.WithStatementCount > 0 then
       scope |> Ast.Utils.setDynamicLookup
-    
+
     // Store the previous block level, function and scope data
     let prevBlockLevel = p.BlockLevel
     let parentFunction = !p.FunctionData
@@ -1077,25 +1077,25 @@ module internal Parser =
     // Parse the block
     let body = p |> block
 
-    // Reset 
+    // Reset
     p.ScopeData := parentScopeData
     p.FunctionData := parentFunction
     p.BlockLevel <- prevBlockLevel
 
     match name with
-    | Some name when isDefinition -> 
+    | Some name when isDefinition ->
       let func = Ast.Tree.Function(Some name, scope, body)
 
       match (!p.FunctionData).Scope with
       | Ast.ScopeOption.Catch _ -> ()
-      | Ast.ScopeOption.Function s -> 
+      | Ast.ScopeOption.Function s ->
         s |> Ast.Utils.addFunction func
 
       Ast.Tree.Pass
 
-    | Some name -> 
+    | Some name ->
       scope |> Ast.Utils.setSelfReference name
-      scopeData.AddVariable name 
+      scopeData.AddVariable name
 
       Ast.Tree.Function(None, scope, body)
 
@@ -1104,24 +1104,24 @@ module internal Parser =
 
   /// Implements: 12.2 Variable statement
   let var inForStatement _ p =
-  
+
     // Consume the var token
     p |> consume
 
     let rec parseVariables (p:P) =
-      let name = p |> consumeIdentifier 
+      let name = p |> consumeIdentifier
       let identifier = Ast.Tree.Identifier name
 
       (!p.FunctionData).AddVariable name
 
-      let expr = 
+      let expr =
         match p |> csymbol with
-        | S.Assign -> 
+        | S.Assign ->
           p |> consume
-          let value = p |> expression S.Comma 0 
+          let value = p |> expression S.Comma 0
           Ast.Tree.Assign(identifier, value) |> Ast.Tree.Var
 
-        | _ -> 
+        | _ ->
           identifier |> Ast.Tree.Var
 
       match p |> csymbol with
@@ -1129,7 +1129,7 @@ module internal Parser =
         p |> consume
         expr :: (p |> parseVariables)
 
-      //Special condition if we're 
+      //Special condition if we're
       //inside of a for statement
       | S.Semicolon
       | S.In when inForStatement -> [expr]
@@ -1140,11 +1140,11 @@ module internal Parser =
 
     // Parse all defined variables in this var statement
     p |> parseVariables |> Ast.Tree.Block
-    
+
   /// Implements: 12.6.3 The for Statement
   /// Implements: 12.6.4 The for-in Statement
   let for' _ (p:P) =
-  
+
     let parseTestAndIncr (p:P) =
       let test =
         match p |> csymbol with
@@ -1197,7 +1197,7 @@ module internal Parser =
         p |> unexpectedToken
 
     | _ ->
-      let vars = 
+      let vars =
         match p |> csymbol with
         | S.Semicolon -> Ast.Tree.Pass
         | _ -> p |> stopExpression S.In
@@ -1206,7 +1206,7 @@ module internal Parser =
       | S.In ->
         p |> consume
         p |> parseForIn vars
-        
+
       | S.Semicolon ->
         p |> consume
         let test, incr = p |> parseTestAndIncr
@@ -1215,7 +1215,7 @@ module internal Parser =
       | _ ->
         p |> unexpectedToken
 
-  /// Implements: 
+  /// Implements:
   let identifier t (p:P) =
     let name = p |> consumeIdentifier
 
@@ -1224,7 +1224,7 @@ module internal Parser =
 
         match (!p.FunctionData).Scope with
         | Ast.ScopeOption.Catch _ -> ()
-        | Ast.ScopeOption.Function s -> 
+        | Ast.ScopeOption.Function s ->
           s|> Ast.Utils.setContainsArguments
 
         name |> (!p.FunctionData).AddVariable
@@ -1234,10 +1234,10 @@ module internal Parser =
 
     Ast.Tree.Identifier(name)
 
-  /// Implements: 
+  /// Implements:
   let codeBlock _ (p:P) =
     p.BlockLevel <- p.BlockLevel + 1
-    let block = p |> block 
+    let block = p |> block
     p.BlockLevel <- p.BlockLevel - 1
     block
 
@@ -1249,7 +1249,7 @@ module internal Parser =
 
     match name with
     | "bp" -> Ast.Directive(Ast.BreakPoint(line, column))
-   
+
   let internal parserDefinition =
     create position prettyPrint
 
@@ -1269,14 +1269,14 @@ module internal Parser =
     |> simplef S.OctalLiteral (value >> toOctal >> double >> Ast.Tree.Number)
     |> simplef S.Identifier (value >> Ast.Tree.Identifier)
 
-    |> nud S.LeftParenthesis grouping 
+    |> nud S.LeftParenthesis grouping
     |> nud S.RegExp regExp
     |> nud S.New new'
     |> nud S.LeftBracket arrayLiteral
     |> nud S.LeftBrace objectLiteral
     |> nud S.Function (function' false)
     |> nud S.Identifier identifier
-    
+
     (*
     // Operator Symbols
     *)
@@ -1354,7 +1354,7 @@ module internal Parser =
 
     |> bpw S.LeftBracket BindingPowers.Member
     |> led S.LeftBracket indexAccessor
-      
+
     |> bpw S.LeftParenthesis BindingPowers.Call
     |> led S.LeftParenthesis call'
 
@@ -1381,19 +1381,19 @@ module internal Parser =
     |> smd S.Continue continue'
     |> smd S.Function (function' true)
 
-  /// Parses a source string into 
+  /// Parses a source string into
   /// an abstract syntax tree
   let parse (source:string) (env:Env) =
     let lexer = source |> Lexer.create
 
-    let scope = 
+    let scope =
       ref {Ast.Utils.createGlobalScope() with GlobalLevel = 0}
 
     let scopeData =
       ScopeData.New 0UL (Ast.ScopeOption.Function scope) None
 
-    let parser = 
-      {parserDefinition with 
+    let parser =
+      {parserDefinition with
         Env = env
         File = "<unknown>"
         Source = source
@@ -1406,10 +1406,10 @@ module internal Parser =
 
     let ast = parser |> statementList |> Ast.Tree.Block
     Ast.Tree.Function(None, scope, ast), scopeData
-    
-  let parseString env string = 
+
+  let parseString env string =
     env |> parse string
 
-  let parseFile env path = 
+  let parseFile env path =
     let source = path |> IO.File.ReadAllText
     env |> parse source

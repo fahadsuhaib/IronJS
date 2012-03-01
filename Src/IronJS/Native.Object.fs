@@ -6,7 +6,7 @@ open IronJS.Runtime
 open IronJS.Support.CustomOperators
 
 ///
-module internal Object =
+module Object =
   
   ///
   let private constructor' (func:FO) (this:CO) (value:BV) =

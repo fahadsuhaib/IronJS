@@ -7,7 +7,7 @@ open IronJS.Support.Aliases
 open IronJS.Support.CustomOperators
 
 ///
-module internal Array =
+module Array =
   
   ///
   type private Sort = 

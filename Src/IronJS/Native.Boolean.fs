@@ -5,7 +5,7 @@ open IronJS
 open IronJS.Runtime
 open IronJS.Support.CustomOperators
 
-module internal Boolean =
+module Boolean =
   
   ///
   let private constructor' (ctor:FO) (this:CO) (value:BV) =

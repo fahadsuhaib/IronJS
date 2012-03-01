@@ -9,9 +9,9 @@ open IronJS.Dlr.Operators
 open IronJS.Support.CustomOperators
 
 ///
-module internal Function =
+module Function =
 
-  /// 
+  ///
   let private createCompiler (compiler:Target.T -> Delegate) ast (ctx:Ctx) =
     let target = {
       Target.T.Ast = ast
@@ -20,13 +20,13 @@ module internal Function =
       Target.T.Environment = ctx.Target.Environment
       Target.T.ParameterTypes = [||]
     }
-    
+
     // It's faster to return a non-partially applied function
     // that can be invoked, instead of partially applying
     // createCompiler which makes it impossible for F# to use .InvokeFast
     fun (f:FO) delegateType ->
       compiler {
-        target with 
+        target with
           DelegateType = Some delegateType
           ParameterTypes = delegateType |> Some |> Target.getParameterTypes
         }
@@ -40,7 +40,7 @@ module internal Function =
         | Ast.Private(storageIndex) -> ParameterStorageType.Private, storageIndex
     |]
 
-  /// 
+  ///
   let create (ctx:Ctx) (scope:Ast.FunctionScope ref) ast =
     let scope = !scope
 
@@ -71,7 +71,7 @@ module internal Function =
     Dlr.Fast.blockTempT<Args> (fun argsArray ->
       [|
         // Create arguments array
-        argsArray .= Dlr.newArrayBoundsT<BV> (!!!args.Length)  
+        argsArray .= Dlr.newArrayBoundsT<BV> (!!!args.Length)
 
         // Put all the parameters into the array
         args $ List.mapi (setArgumentInArray argsArray) $ Dlr.block []
@@ -87,7 +87,7 @@ module internal Function =
 
   ///
   let invokeFunction (ctx:Ctx) this (args:Dlr.Expr list) func =
-    
+
     //
     let invokeJs func =
 
@@ -101,7 +101,7 @@ module internal Function =
         let cachedId = invokeCache .-> "CachedId"
         let cachedDelegate = invokeCache .-> "CachedDelegate"
         let metaDataId = func .-> "MetaData" .-> "Id"
-        
+
         let args = func :: this :: args
 
         Dlr.ternary
@@ -122,20 +122,20 @@ module internal Function =
     let delegateType = DelegateUtils.getCallSiteDelegate [for a in args -> a.Type]
     let dynamicArgs = Identifier.getDynamicArgs ctx name
     let defaultArgs = [Dlr.const' name; argsArray; ctx.Parameters.DynamicScope :> Dlr.Expr]
-    
+
     Dlr.callStaticGenericT<DynamicScopeHelpers> "Call" [|delegateType|] (defaultArgs @ dynamicArgs)
-    
+
   ///
   let invokeIdentifier (ctx:Ctx) name args =
-    if ctx.DynamicLookup 
+    if ctx.DynamicLookup
       then invokeIdentifierDynamic ctx name args
       else name |> Identifier.getValue ctx |> invokeFunction ctx ctx.Globals args
-      
+
   ///
   let invokeProperty (ctx:Ctx) object' name args =
     (Utils.ensureObject ctx object'
       (fun x -> x |> Object.Property.get !!!name |> invokeFunction ctx x args)
-      (fun x -> 
+      (fun x ->
         (Dlr.ternary
           (Dlr.isNull_Real x)
           (Dlr.callGeneric ctx.Env "RaiseTypeError" [typeof<BV>] [!!!ErrorUtils.nextErrorId()])
@@ -147,17 +147,17 @@ module internal Function =
   let invokeIndex (ctx:Ctx) object' index args =
     (Utils.ensureObject ctx object'
       (fun x -> Object.Index.get x index |> invokeFunction ctx x args)
-      (fun x -> 
+      (fun x ->
         (Dlr.ternary
           (Dlr.isNull_Real x)
           (Dlr.callGeneric ctx.Env "RaiseTypeError" [typeof<BV>] [!!!ErrorUtils.nextErrorId()])
           (Utils.Constants.Boxed.undefined)
         )
       ))
-    
+
   ///
   let createTempVars args =
-    List.foldBack (fun a (temps, args:Dlr.Expr list, ass) -> 
+    List.foldBack (fun a (temps, args:Dlr.Expr list, ass) ->
 
       if Dlr.isStatic a then (temps, a :: args, ass)
       else
@@ -173,29 +173,29 @@ module internal Function =
     let func = ctx.Compile func
 
     Utils.ensureFunction ctx func
-      
+
       (fun f ->
         let argTypes = [for (a:Dlr.Expr) in args -> a.Type]
         if argTypes.Length > 4 then
           invokeVariadic f None args
-          
+
         else
           Dlr.callGeneric f "Construct" argTypes args
       )
 
-      (fun _ -> 
+      (fun _ ->
         Dlr.callGeneric ctx.Env "RaiseTypeError" [typeof<BV>] [!!!ErrorUtils.nextErrorId()]
       )
-      
+
   /// 11.2.3 function calls
   let invoke (ctx:Ctx) tree argTrees =
     let args = [for tree in argTrees -> ctx.Compile tree]
     let temps, args, assigns = createTempVars args
 
-    let invokeExpr = 
+    let invokeExpr =
       //foo(arg1, arg2, [arg3, ...])
       match tree with
-      | Ast.Identifier(name) -> 
+      | Ast.Identifier(name) ->
         invokeIdentifier ctx name args
 
       //bar.foo(arg1, arg2, [arg3, ...])
@@ -213,7 +213,7 @@ module internal Function =
       | _ -> tree |> ctx.Compile |> invokeFunction ctx ctx.Globals args
 
     Dlr.block temps (assigns @ [invokeExpr])
-    
+
   /// 12.9 the return statement
   let return' (ctx:Ctx) tree =
     match ctx.Labels.ReturnCompiler with
@@ -221,24 +221,24 @@ module internal Function =
     | Some returnCompiler ->
       tree |> ctx.Compile |> returnCompiler
 
-  /// 
+  ///
   let evalInvocation (ctx:Ctx) evalTarget =
     let eval = Dlr.paramT<BoxedValue> "eval"
     let target = Dlr.paramT<EvalTarget> "target"
     let evalTarget = ctx.Compile evalTarget
-    
+
     Dlr.block [eval; target] [
       (Dlr.assign eval (ctx.Parameters |> Parameters.globals |> Object.Property.get !!!"eval"))
       (Dlr.assign target Dlr.newT<EvalTarget>)
 
       (Utils.assign
-        (Dlr.field target "GlobalLevel") 
+        (Dlr.field target "GlobalLevel")
         (Dlr.const' (!ctx.Scope).GlobalLevel))
 
       (Utils.assign
-        (Dlr.field target "ClosureLevel") 
+        (Dlr.field target "ClosureLevel")
         (Dlr.const' (!ctx.Scope).ClosureLevel))
-        
+
       (Utils.assign (Dlr.field target "Target") evalTarget)
       (Utils.assign (Dlr.field target "Function") ctx.Parameters.Function)
       (Utils.assign (Dlr.field target "This") ctx.Parameters.This)
